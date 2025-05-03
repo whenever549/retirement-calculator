@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>은퇴 자금 계산기</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+        h1 { text-align: center; }
+        label, input { display: block; margin: 10px 0; }
+        input[type="number"] { width: 100%; padding: 8px; }
+        button { padding: 10px 20px; font-size: 16px; }
+        #result { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>은퇴 자금 계산기</h1>
+    <label>현재 기준 목표 은퇴자금 (원):</label>
+    <input type="number" id="target_now" value="330000000">
+
+    <label>연 인플레이션율 (0~1):</label>
+    <input type="number" step="0.01" id="inflation" value="0.07">
+
+    <label>연 수익률 (0~1):</label>
+    <input type="number" step="0.01" id="return" value="0.07">
+
+    <label>저축 기간 (년):</label>
+    <input type="number" id="years" value="28">
+
+    <button onclick="calculate()">계산하기</button>
+
+    <div id="result"></div>
+
+    <script>
+        function calculateFV(startMonthly, inflation, retRate, years) {
+            let fv = 0;
+            for (let y = 0; y < years; y++) {
+                let monthly = startMonthly * Math.pow(1 + inflation, y);
+                for (let m = 0; m < 12; m++) {
+                    let monthsLeft = (years - y - 1) * 12 + (12 - m);
+                    fv += monthly * Math.pow(1 + retRate / 12, monthsLeft);
+                }
+            }
+            return fv;
+        }
+
+        function calculate() {
+            const targetNow = parseFloat(document.getElementById("target_now").value);
+            const inflation = parseFloat(document.getElementById("inflation").value);
+            const retRate = parseFloat(document.getElementById("return").value);
+            const years = parseInt(document.getElementById("years").value);
+
+            const targetFV = targetNow * Math.pow(1 + inflation, years);
+            let bestStart = 0;
+            let minDiff = Number.MAX_VALUE;
+
+            for (let guess = 850000; guess <= 1200000; guess += 1000) {
+                const fv = calculateFV(guess, inflation, retRate, years);
+                const diff = Math.abs(fv - targetFV);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestStart = guess;
+                }
+            }
+
+            const finalFV = calculateFV(bestStart, inflation, retRate, years);
+            document.getElementById("result").innerHTML = `
+                목표 미래 자금 (명목가치): ${Math.round(targetFV).toLocaleString()}원<br>
+                추천 시작 월 저축액: ${bestStart.toLocaleString()}원<br>
+                도달 예상 금액: ${Math.round(finalFV).toLocaleString()}원
+            `;
+        }
+    </script>
+</body>
+</html>
